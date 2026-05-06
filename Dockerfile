@@ -30,7 +30,7 @@ COPY --from=builder /out/ /
 FROM debian:trixie-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wimtools samba ca-certificates bsdtar \
+    wimtools samba ca-certificates libarchive-tools \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /out/bootimus /bootimus
