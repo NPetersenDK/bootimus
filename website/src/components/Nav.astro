@@ -25,6 +25,20 @@ const langItems = locales.map((code) => ({
     <a href={lang === defaultLocale ? '/' : `/${lang}/`} class="brand" aria-label="Bootimus home">
       <span class="brand-mark">[</span><span class="brand-name">bootimus</span><span class="brand-mark">]</span>
     </a>
+    <span class="origin" aria-label={t('nav.madeInBritain')} title={t('nav.madeInBritain')}>
+      <svg class="origin-flag" viewBox="0 0 60 30" width="22" height="11" aria-hidden="true">
+        <clipPath id="uk-s"><path d="M0,0 v30 h60 v-30 z"/></clipPath>
+        <clipPath id="uk-t"><path d="M30,15 h30 v15 z v15 h-30 z h-30 v-15 z v-15 h30 z"/></clipPath>
+        <g clip-path="url(#uk-s)">
+          <path d="M0,0 v30 h60 v-30 z" fill="#012169"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" stroke="#fff" stroke-width="6"/>
+          <path d="M0,0 L60,30 M60,0 L0,30" clip-path="url(#uk-t)" stroke="#C8102E" stroke-width="4"/>
+          <path d="M30,0 v30 M0,15 h60" stroke="#fff" stroke-width="10"/>
+          <path d="M30,0 v30 M0,15 h60" stroke="#C8102E" stroke-width="6"/>
+        </g>
+      </svg>
+      <span class="origin-text">{t('nav.madeInBritain')}</span>
+    </span>
     <ul class="nav-links">
       {links.map((l) => (
         <li class="nav-li">
@@ -127,6 +141,26 @@ const langItems = locales.map((code) => ({
   .brand:hover { color: var(--amber); }
   .brand-mark { color: var(--amber); font-weight: 500; }
   .brand-name { color: inherit; }
+
+  .origin {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-left: 0.7rem;
+    padding: 0.15rem 0.45rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    user-select: none;
+  }
+  .origin-flag {
+    display: block;
+    border-radius: 1px;
+    box-shadow: 0 0 0 1px var(--border);
+  }
 
   .nav-links {
     list-style: none;
@@ -271,8 +305,11 @@ const langItems = locales.map((code) => ({
     .nav-links { gap: 0.9rem; }
     .nav-li:nth-child(2) { display: none; }
     .lang-item-native { font-size: 0.78rem; }
+    .origin-text { display: none; }
+    .origin { padding: 0.15rem 0.3rem; margin-left: 0.5rem; }
   }
   @media (max-width: 520px) {
     .nav-li:nth-child(1) { display: none; }
+    .origin { display: none; }
   }
 </style>

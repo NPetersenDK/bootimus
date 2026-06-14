@@ -39,6 +39,8 @@ func init() {
 	rootCmd.PersistentFlags().Int("admin-port", 8081, "Admin interface port")
 	rootCmd.PersistentFlags().Bool("nbd-enabled", true, "Enable NBD server for network block device ISO mounting")
 	rootCmd.PersistentFlags().Int("nbd-port", 10809, "NBD server port")
+	rootCmd.PersistentFlags().Bool("nfs-enabled", false, "Enable in-process NFS server for streamed live-distro roots (low memory)")
+	rootCmd.PersistentFlags().Int("nfs-port", 2049, "NFS server port (also used as mountport)")
 	rootCmd.PersistentFlags().String("data-dir", "./data", "Base data directory (subdirs: isos/, bootloaders/)")
 	rootCmd.PersistentFlags().String("server-addr", "", "Server IP address (auto-detected if not specified)")
 
@@ -77,6 +79,8 @@ func init() {
 	viper.BindPFlag("admin_port", rootCmd.PersistentFlags().Lookup("admin-port"))
 	viper.BindPFlag("nbd_enabled", rootCmd.PersistentFlags().Lookup("nbd-enabled"))
 	viper.BindPFlag("nbd_port", rootCmd.PersistentFlags().Lookup("nbd-port"))
+	viper.BindPFlag("nfs_enabled", rootCmd.PersistentFlags().Lookup("nfs-enabled"))
+	viper.BindPFlag("nfs_port", rootCmd.PersistentFlags().Lookup("nfs-port"))
 	viper.BindPFlag("data_dir", rootCmd.PersistentFlags().Lookup("data-dir"))
 	viper.BindPFlag("server_addr", rootCmd.PersistentFlags().Lookup("server-addr"))
 	viper.BindPFlag("db.host", rootCmd.PersistentFlags().Lookup("db-host"))

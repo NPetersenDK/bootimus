@@ -1593,8 +1593,8 @@ func (h *Handler) SetBootMethod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.BootMethod != "sanboot" && req.BootMethod != "kernel" && req.BootMethod != "nbd" {
-		h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "Invalid boot method (must be 'sanboot', 'kernel', or 'nbd')"})
+	if req.BootMethod != "sanboot" && req.BootMethod != "kernel" && req.BootMethod != "nbd" && req.BootMethod != "nfs" {
+		h.sendJSON(w, http.StatusBadRequest, Response{Success: false, Error: "Invalid boot method (must be 'sanboot', 'kernel', 'nbd', or 'nfs')"})
 		return
 	}
 
@@ -1604,10 +1604,10 @@ func (h *Handler) SetBootMethod(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.BootMethod == "kernel" && !image.Extracted {
+	if (req.BootMethod == "kernel" || req.BootMethod == "nfs") && !image.Extracted {
 		h.sendJSON(w, http.StatusBadRequest, Response{
 			Success: false,
-			Error:   "Cannot use kernel boot method: image not extracted. Please extract first.",
+			Error:   "Cannot use this boot method: image not extracted. Please extract first.",
 		})
 		return
 	}

@@ -19,6 +19,7 @@ type MenuBuilder struct {
 	macAddress      string
 	serverAddr      string
 	httpPort        int
+	nfsPort         int
 	groupStack      []uint
 	enabledTools    []tools.EnabledTool
 	nextBootImageID uint
@@ -51,6 +52,7 @@ func (s *Server) generateIPXEMenuWithGroups(images []models.Image, macAddress st
 		macAddress:      macAddress,
 		serverAddr:      s.config.ServerAddr,
 		httpPort:        s.config.HTTPPort,
+		nfsPort:         s.config.NFSPort,
 		enabledTools:    enabledTools,
 		nextBootImageID: nbID,
 		profileManager:  s.config.ProfileManager,
@@ -249,7 +251,7 @@ func (mb *MenuBuilder) buildImageBootSections() string {
 		sb.WriteString(fmt.Sprintf("echo Booting %s...\n", img.Name))
 
 		encodedFilename := encodePathSegments(img.Filename)
-		cacheDir := encodePathSegments(strings.TrimSuffix(img.Filename, ".iso"))
+		cacheDir := encodePathSegments(strings.TrimSuffix(img.Filename, filepath.Ext(img.Filename)))
 
 		switch img.BootMethod {
 		case "nbd":
@@ -257,6 +259,13 @@ func (mb *MenuBuilder) buildImageBootSections() string {
 			sb.WriteString(fmt.Sprintf("kernel http://%s:%d/bootenv/vmlinuz-lts\n", mb.serverAddr, mb.httpPort))
 			sb.WriteString(fmt.Sprintf("initrd http://%s:%d/bootenv/initramfs-bootimus\n", mb.serverAddr, mb.httpPort))
 			sb.WriteString(fmt.Sprintf("imgargs vmlinuz-lts init=/init iso=%s server=%s nbdport=10809 console=tty0 console=ttyS0\n", encodedFilename, mb.serverAddr))
+			sb.WriteString("boot || goto failed\n")
+
+		case "nfs":
+			sb.WriteString("echo Using NFS root (streamed, low memory)...\n")
+			nfsPath := strings.TrimSuffix(img.Filename, filepath.Ext(img.Filename))
+			sb.WriteString(fmt.Sprintf("kernel http://%s:%d/boot/%s/vmlinuz initrd=initrd root=/dev/nfs boot=casper netboot=nfs nfsroot=%s:/%s/iso,vers=3,tcp,port=%d,mountport=%d,nolock ip=dhcp\n", mb.serverAddr, mb.httpPort, cacheDir, mb.serverAddr, nfsPath, mb.nfsPort, mb.nfsPort))
+			sb.WriteString(fmt.Sprintf("initrd http://%s:%d/boot/%s/initrd\n", mb.serverAddr, mb.httpPort, cacheDir))
 			sb.WriteString("boot || goto failed\n")
 
 		case "kernel":

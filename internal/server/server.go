@@ -29,6 +29,7 @@ import (
 	"bootimus/internal/metrics"
 	"bootimus/internal/models"
 	"bootimus/internal/nbd"
+	"bootimus/internal/nfs"
 	"bootimus/internal/profiles"
 	"bootimus/internal/proxydhcp"
 	"bootimus/internal/redfish"
@@ -84,6 +85,8 @@ type Config struct {
 	Auth             *auth.Manager
 	NBDEnabled       bool
 	NBDPort          int
+	NFSEnabled       bool
+	NFSPort          int
 	WOLBroadcastAddr string
 	ProfileManager   *profiles.Manager
 
@@ -511,6 +514,18 @@ func (s *Server) Start() error {
 			nbdServer := nbd.NewServer(s.config.ISODir, s.config.NBDPort)
 			if err := nbdServer.Start(); err != nil {
 				log.Printf("NBD server error: %v", err)
+			}
+		}()
+	}
+
+	if s.config.NFSEnabled {
+		log.Printf("NFS Port: %d", s.config.NFSPort)
+		s.wg.Add(1)
+		go func() {
+			defer s.wg.Done()
+			nfsServer := nfs.NewServer(s.config.ISODir, s.config.NFSPort)
+			if err := nfsServer.Start(); err != nil {
+				log.Printf("NFS server error: %v", err)
 			}
 		}()
 	}

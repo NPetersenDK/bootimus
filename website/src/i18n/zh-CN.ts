@@ -20,6 +20,7 @@ const zhCN = {
     toggleTheme: '切换主题',
     languageLabel: '语言',
     comingSoon: '即将推出',
+    madeInBritain: 'made in britain',
   },
 
   footer: {

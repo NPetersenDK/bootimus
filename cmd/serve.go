@@ -193,6 +193,8 @@ func runServe(cmd *cobra.Command, args []string) {
 		Auth:             authMgr,
 		NBDEnabled:       viper.GetBool("nbd_enabled"),
 		NBDPort:          viper.GetInt("nbd_port"),
+		NFSEnabled:       viper.GetBool("nfs_enabled"),
+		NFSPort:          viper.GetInt("nfs_port"),
 		WOLBroadcastAddr: viper.GetString("wol_broadcast_addr"),
 		ProfileManager:   profileMgr,
 

@@ -20,6 +20,7 @@ export default {
     toggleTheme: 'Toggle theme',
     languageLabel: 'Language',
     comingSoon: 'coming soon',
+    madeInBritain: 'made in britain',
   },
 
   footer: {

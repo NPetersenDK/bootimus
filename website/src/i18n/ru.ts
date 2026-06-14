@@ -20,6 +20,7 @@ const ru = {
     toggleTheme: 'Сменить тему',
     languageLabel: 'Язык',
     comingSoon: 'скоро',
+    madeInBritain: 'made in britain',
   },
 
   footer: {

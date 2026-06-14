@@ -20,6 +20,7 @@ const fr = {
     toggleTheme: 'Changer de thème',
     languageLabel: 'Langue',
     comingSoon: 'bientôt',
+    madeInBritain: 'made in britain',
   },
 
   footer: {
