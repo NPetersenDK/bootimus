@@ -186,15 +186,15 @@ func pxeVendorOptions() []byte {
 func (s *Server) effectiveBootfiles() (bios, uefi, arm64 string) {
 	bios, uefi, arm64 = s.cfg.BootfileBIOS, s.cfg.BootfileUEFI, s.cfg.BootfileARM64
 	if s.cfg.Bootfiles != nil {
-		b, u, a := s.cfg.Bootfiles()
-		if b != "" {
-			bios = b
+		overrideBIOS, overrideUEFI, overrideARM64 := s.cfg.Bootfiles()
+		if overrideBIOS != "" {
+			bios = overrideBIOS
 		}
-		if u != "" {
-			uefi = u
+		if overrideUEFI != "" {
+			uefi = overrideUEFI
 		}
-		if a != "" {
-			arm64 = a
+		if overrideARM64 != "" {
+			arm64 = overrideARM64
 		}
 	}
 	return bios, uefi, arm64
