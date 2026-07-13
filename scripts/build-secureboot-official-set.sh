@@ -63,34 +63,32 @@ curl -fsSL -o "$STAGING/ipxeboot.tar.gz" "$IPXE_RELEASE_BASE/ipxeboot.tar.gz"
 mkdir -p "$STAGING/extract"
 tar -xzf "$STAGING/ipxeboot.tar.gz" -C "$STAGING/extract"
 
-# The archive layout is not guaranteed across releases; locate binaries by
-# name and fail loudly with a listing if the expected names are missing.
-locate_one() {
-    local pattern="$1"
-    local match
-    match="$(find "$STAGING/extract" -type f -name "$pattern" | head -n1)"
-    if [[ -z "$match" ]]; then
-        echo "Could not find $pattern inside ipxeboot.tar.gz — archive layout changed?" >&2
-        echo "Archive contents:" >&2
-        find "$STAGING/extract" -type f >&2
-        exit 1
-    fi
-    printf '%s\n' "$match"
-}
-
+# Only the */-sb/ directories contain binaries signed by the iPXE Secure Boot
+# CA — the plain arch directories (x86_64/, arm64/, …) hold UNSIGNED builds
+# that shim rejects with "Verification failed: (0x1A) Security Violation".
 # shim derives the second-stage name from its own filename:
 # ipxe-shimx64.efi loads ipxe.efi, so the signed binary must keep that name.
-X64_IPXE="$(find "$STAGING/extract" -type f \( -path '*x86_64*' -o -path '*x64*' \) -name 'ipxe.efi' | head -n1)"
+X64_IPXE="$(find "$STAGING/extract" -type f -path '*x86_64-sb*' -name 'ipxe.efi' | head -n1)"
 if [[ -z "$X64_IPXE" ]]; then
-    X64_IPXE="$(locate_one 'ipxe.efi')"
+    echo "Could not find the SIGNED x86_64-sb/ipxe.efi in ipxeboot.tar.gz — archive layout changed?" >&2
+    echo "Archive contents:" >&2
+    find "$STAGING/extract" -type f >&2
+    exit 1
 fi
 cp "$X64_IPXE" "$STAGING/ipxe.efi"
 
-ARM64_IPXE="$(find "$STAGING/extract" -type f \( -path '*arm64*' -o -path '*aa64*' \) -name '*.efi' \( -name 'ipxe*' -o -name 'snponly*' \) | head -n1)"
-if [[ -n "$ARM64_IPXE" ]]; then
+# Cheap signature sanity check: the signing cert's CN is embedded verbatim in
+# a signed PE. Catches accidentally grabbing an unsigned build.
+if ! grep -aq "iPXE Secure Boot" "$STAGING/ipxe.efi"; then
+    echo "ipxe.efi does not contain an iPXE Secure Boot CA signature — refusing to ship it" >&2
+    exit 1
+fi
+
+ARM64_IPXE="$(find "$STAGING/extract" -type f -path '*arm64-sb*' -name 'ipxe.efi' | head -n1)"
+if [[ -n "$ARM64_IPXE" ]] && grep -aq "iPXE Secure Boot" "$ARM64_IPXE"; then
     cp "$ARM64_IPXE" "$STAGING/ipxe-arm64.efi"
 else
-    echo "WARNING: no ARM64 iPXE binary found in the archive; skipping ARM64 support" >&2
+    echo "WARNING: no signed ARM64 iPXE binary found in the archive; skipping ARM64 support" >&2
 fi
 
 # --- download official wimboot -------------------------------------------------
