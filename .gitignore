@@ -50,3 +50,7 @@ bootloaders/thinos-initrd
 signing/
 *.key
 *.crt
+
+# Zero-enrollment Secure Boot set — assembled locally from official releases
+# by scripts/build-secureboot-official-set.sh, never committed or embedded.
+bootloaders/secureboot-official/

@@ -4,8 +4,12 @@ set -euo pipefail
 # Builds the "secureboot" bootloader set:
 #   1. Compiles iPXE with our embed.ipxe (in Docker, same pattern as build-bootloaders.sh)
 #   2. Signs the resulting EFI binaries with the Bootimus signing key (on host, key never enters Docker)
-#   3. Downloads Microsoft-signed shim binaries from the ipxe/shim release
-#   4. Assembles bootloaders-secureboot/ with everything plus a manifest.json
+#   3. Downloads Microsoft-signed shim + MokManager binaries from the ipxe/shim release
+#      (MokManager lets shim offer on-machine enrollment of bootimus-signing.crt
+#      when second-stage verification fails, instead of a hard Access Denied)
+#   4. Signs wimboot from the default set so Windows boots survive Secure Boot
+#      once the Bootimus cert is enrolled
+#   5. Assembles bootloaders/secureboot/ with everything plus a manifest.json
 #
 # Requirements on the host:
 #   - docker
@@ -100,11 +104,18 @@ sbsign --key "$KEY_PATH" --cert "$CERT_PATH" \
     --output "$STAGING/ipxe-arm64.efi" \
     "$STAGING/ipxe-aa64.efi.unsigned"
 
-# --- download Microsoft-signed shim binaries ---------------------------------
+echo "==> Signing wimboot with Bootimus key"
+sbsign --key "$KEY_PATH" --cert "$CERT_PATH" \
+    --output "$STAGING/wimboot" \
+    "$BOOTLOADERS_DEFAULT/wimboot"
+
+# --- download Microsoft-signed shim + MokManager binaries --------------------
 
 echo "==> Downloading ipxe/shim ${SHIM_VERSION} signed binaries"
 curl -fsSL -o "$STAGING/ipxe-shimx64.efi"  "$SHIM_RELEASE_BASE/ipxe-shimx64.efi"
 curl -fsSL -o "$STAGING/ipxe-shimaa64.efi" "$SHIM_RELEASE_BASE/ipxe-shimaa64.efi"
+curl -fsSL -o "$STAGING/mmx64.efi"         "$SHIM_RELEASE_BASE/mmx64.efi"
+curl -fsSL -o "$STAGING/mmaa64.efi"        "$SHIM_RELEASE_BASE/mmaa64.efi"
 
 # --- assemble the output set -------------------------------------------------
 
@@ -114,15 +125,18 @@ mkdir -p "$OUT_DIR"
 
 cp "$STAGING/ipxe-shimx64.efi"  "$OUT_DIR/"
 cp "$STAGING/ipxe-shimaa64.efi" "$OUT_DIR/"
+cp "$STAGING/mmx64.efi"         "$OUT_DIR/"
+cp "$STAGING/mmaa64.efi"        "$OUT_DIR/"
 cp "$STAGING/ipxe.efi"          "$OUT_DIR/"
 cp "$STAGING/ipxe-arm64.efi"    "$OUT_DIR/"
+cp "$STAGING/wimboot"           "$OUT_DIR/"
 cp "$STAGING/undionly.kpxe"     "$OUT_DIR/"
 cp "$CERT_PATH"                 "$OUT_DIR/bootimus-signing.crt"
 
 cat > "$OUT_DIR/manifest.json" <<EOF
 {
   "name": "secureboot",
-  "description": "UEFI Secure Boot via ipxe/shim ${SHIM_VERSION}. Requires one-time MOK enrollment of bootimus-signing.crt per machine.",
+  "description": "UEFI Secure Boot via ipxe/shim ${SHIM_VERSION} with MokManager. Requires one-time enrollment of bootimus-signing.crt per machine (MOK or firmware db).",
   "shim_version": "${SHIM_VERSION}",
   "bootfiles": {
     "bios": "undionly.kpxe",
