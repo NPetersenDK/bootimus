@@ -3,10 +3,12 @@ set -euo pipefail
 
 # Builds the "secureboot-official" bootloader set — the zero-enrollment
 # UEFI Secure Boot chain:
-#   - Microsoft-signed shim + MokManager from the ipxe/shim release
-#   - Stock iPXE binaries signed by the iPXE project's own Secure Boot CA,
-#     taken from the official iPXE release (v2.0+)
-#   - Official wimboot release binary for Windows images
+#   - Microsoft-signed shim taken from the SAME iPXE release archive as the
+#     iPXE binaries it verifies (shim build and signing certs must be a
+#     matched pair — mixing a standalone ipxe/shim release with a different
+#     iPXE release's signed binaries can fail verification)
+#   - Stock iPXE binaries signed by the iPXE project's own Secure Boot CA
+#   - Official wimboot release binary (Microsoft-signed) for Windows images
 #
 # Nothing is signed locally and no per-machine cert enrollment is needed:
 # firmware trusts the Microsoft-signed shim, shim trusts the iPXE Secure Boot
@@ -29,9 +31,6 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 BOOTLOADERS_DEFAULT="$ROOT_DIR/bootloaders/default"
 OUT_DIR="$ROOT_DIR/bootloaders/secureboot-official"
 
-SHIM_VERSION="${SHIM_VERSION:-16.1}"
-# ipxe/shim release tags are prefixed with "ipxe-" (e.g. ipxe-16.1).
-SHIM_RELEASE_BASE="https://github.com/ipxe/shim/releases/download/ipxe-${SHIM_VERSION}"
 # First iPXE release with official Secure Boot signed binaries is v2.0.0.
 IPXE_VERSION="${IPXE_VERSION:-v2.0.0}"
 IPXE_RELEASE_BASE="https://github.com/ipxe/ipxe/releases/download/${IPXE_VERSION}"
@@ -48,15 +47,7 @@ done
 STAGING="$(mktemp -d)"
 trap 'rm -rf "$STAGING"' EXIT
 
-# --- download Microsoft-signed shim + MokManager ------------------------------
-
-echo "==> Downloading ipxe/shim ${SHIM_VERSION} signed binaries"
-curl -fsSL -o "$STAGING/ipxe-shimx64.efi"  "$SHIM_RELEASE_BASE/ipxe-shimx64.efi"
-curl -fsSL -o "$STAGING/ipxe-shimaa64.efi" "$SHIM_RELEASE_BASE/ipxe-shimaa64.efi"
-curl -fsSL -o "$STAGING/mmx64.efi"         "$SHIM_RELEASE_BASE/mmx64.efi"
-curl -fsSL -o "$STAGING/mmaa64.efi"        "$SHIM_RELEASE_BASE/mmaa64.efi"
-
-# --- download official signed iPXE binaries -----------------------------------
+# --- download the official signed iPXE + shim archive -------------------------
 
 echo "==> Downloading iPXE ${IPXE_VERSION} signed netboot archive"
 curl -fsSL -o "$STAGING/ipxeboot.tar.gz" "$IPXE_RELEASE_BASE/ipxeboot.tar.gz"
@@ -91,6 +82,22 @@ else
     echo "WARNING: no signed ARM64 iPXE binary found in the archive; skipping ARM64 support" >&2
 fi
 
+# The Microsoft-signed shim ships inside the same archive, release-paired with
+# the signing certs used for the iPXE binaries above. Renamed so shim derives
+# "ipxe.efi" as its second-stage filename (ipxe-shimx64.efi -> ipxe.efi).
+X64_SHIM="$(find "$STAGING/extract" -type f -path '*x86_64-sb*' -name 'shimx64.efi' | head -n1)"
+if [[ -z "$X64_SHIM" ]] || ! grep -aq "Microsoft Corporation" "$X64_SHIM"; then
+    echo "Could not find a Microsoft-signed x86_64-sb/shimx64.efi in ipxeboot.tar.gz" >&2
+    find "$STAGING/extract" -type f >&2
+    exit 1
+fi
+cp "$X64_SHIM" "$STAGING/ipxe-shimx64.efi"
+
+ARM64_SHIM="$(find "$STAGING/extract" -type f -path '*arm64-sb*' -name 'shimaa64.efi' | head -n1)"
+if [[ -n "$ARM64_SHIM" ]]; then
+    cp "$ARM64_SHIM" "$STAGING/ipxe-shimaa64.efi"
+fi
+
 # --- download official wimboot -------------------------------------------------
 
 echo "==> Downloading wimboot ${WIMBOOT_VERSION}"
@@ -103,9 +110,9 @@ rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR"
 
 cp "$STAGING/ipxe-shimx64.efi"  "$OUT_DIR/"
-cp "$STAGING/ipxe-shimaa64.efi" "$OUT_DIR/"
-cp "$STAGING/mmx64.efi"         "$OUT_DIR/"
-cp "$STAGING/mmaa64.efi"        "$OUT_DIR/"
+if [[ -f "$STAGING/ipxe-shimaa64.efi" ]]; then
+    cp "$STAGING/ipxe-shimaa64.efi" "$OUT_DIR/"
+fi
 cp "$STAGING/ipxe.efi"          "$OUT_DIR/"
 if [[ -f "$STAGING/ipxe-arm64.efi" ]]; then
     cp "$STAGING/ipxe-arm64.efi" "$OUT_DIR/"
@@ -117,8 +124,8 @@ cp "$BOOTLOADERS_DEFAULT/undionly.kpxe" "$OUT_DIR/"
 cat > "$OUT_DIR/manifest.json" <<EOF
 {
   "name": "secureboot-official",
-  "description": "Zero-enrollment UEFI Secure Boot: Microsoft-signed shim ${SHIM_VERSION} + official iPXE ${IPXE_VERSION} binaries signed by the iPXE Secure Boot CA. No embedded script — relies on autoexec.ipxe over TFTP (iPXE >= 2.0).",
-  "shim_version": "${SHIM_VERSION}",
+  "description": "Zero-enrollment UEFI Secure Boot: release-paired Microsoft-signed shim + official iPXE ${IPXE_VERSION} binaries signed by the iPXE Secure Boot CA. No embedded script — relies on autoexec.ipxe over TFTP (iPXE >= 2.0).",
+  "shim_version": "bundled-${IPXE_VERSION}",
   "bootfiles": {
     "bios": "undionly.kpxe",
     "uefi": "ipxe-shimx64.efi",
