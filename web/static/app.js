@@ -5142,7 +5142,9 @@ async function showImagePropertiesModal(filename, opts) {
         }
     } catch (e) {}
 
-    document.getElementById('image-props-boot-params').value = img.boot_params || getDefaultBootParams(img) || '';
+    const bootParamsInput = document.getElementById('image-props-boot-params');
+    bootParamsInput.value = img.boot_params || '';
+    bootParamsInput.placeholder = getDefaultBootParams(img) || 'Optional kernel parameters';
     document.getElementById('image-props-redetect-btn').style.display = img.extracted ? '' : 'none';
     document.getElementById('image-props-enabled').checked = img.enabled;
     document.getElementById('image-props-public').checked = img.public;
