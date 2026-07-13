@@ -309,8 +309,10 @@ func (mb *MenuBuilder) buildKernelBootSection(img *models.Image, encodedFilename
 	case "windows", "windows7":
 		sb.WriteString("echo Loading Windows boot files via wimboot...\n")
 		sb.WriteString(fmt.Sprintf("kernel %s/wimboot%s\n", baseURL, bootParams))
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/iso/boot/bcd BCD || initrd %s/boot/%s/iso/BOOT/BCD BCD\n", baseURL, cacheDir, baseURL, cacheDir))
-		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/iso/boot/boot.sdi boot.sdi || initrd %s/boot/%s/iso/BOOT/BOOT.SDI boot.sdi\n", baseURL, cacheDir, baseURL, cacheDir))
+		// Ship only boot.wim and let wimboot synthesize the ramdisk BCD +
+		// boot.sdi (the documented minimal setup). Feeding the ISO's DVD BCD
+		// hangs 24H2/25H2 media on a black screen after the loading bar; the
+		// windows7 profile keeps rawbcd in its boot params for the legacy path.
 		sb.WriteString(fmt.Sprintf("initrd %s/boot/%s/iso/sources/boot.wim boot.wim || initrd %s/boot/%s/iso/SOURCES/BOOT.WIM boot.wim\n", baseURL, cacheDir, baseURL, cacheDir))
 		sb.WriteString("boot || goto failed\n")
 

@@ -1820,10 +1820,6 @@ echo Auto-install enabled for this image
 {{if eq $img.Distro "windows"}}
 echo Loading Windows boot files via wimboot...
 kernel http://{{$.ServerAddr}}:{{$.HTTPPort}}/wimboot
-initrd http://{{$.ServerAddr}}:{{$.HTTPPort}}/boot/{{$img.CacheDir}}/bootmgfw.efi bootmgfw.efi
-initrd http://{{$.ServerAddr}}:{{$.HTTPPort}}/boot/{{$img.CacheDir}}/bootx64.efi bootx64.efi
-initrd http://{{$.ServerAddr}}:{{$.HTTPPort}}/boot/{{$img.CacheDir}}/bcd BCD
-initrd http://{{$.ServerAddr}}:{{$.HTTPPort}}/boot/{{$img.CacheDir}}/boot.sdi boot.sdi
 initrd http://{{$.ServerAddr}}:{{$.HTTPPort}}/boot/{{$img.CacheDir}}/boot.wim boot.wim
 {{if $img.InstallWimPath}}initrd --name {{$img.InstallBasename}} http://{{$.ServerAddr}}:{{$.HTTPPort}}/boot/{{$img.CacheDir}}/{{$img.InstallBasename}}
 {{end}}boot || goto failed
