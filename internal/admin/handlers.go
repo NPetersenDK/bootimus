@@ -211,6 +211,12 @@ exit /b 1
 :netready
 
 echo Connecting to bootimus installation source...
+rem Windows 11 24H2+ WinPE ships with insecure guest auth disabled and SMB
+rem signing required; guest sessions cannot sign, so mapping the read-only
+rem guest share fails with access denied. Re-enable guest SMB for this
+rem WinPE session only (never touches the installed OS).
+reg add HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters /v AllowInsecureGuestAuth /t REG_DWORD /d 1 /f >nul 2>&1
+reg add HKLM\SYSTEM\CurrentControlSet\Services\LanmanWorkstation\Parameters /v RequireSecuritySignature /t REG_DWORD /d 0 /f >nul 2>&1
 rem Kick the SMB client stack — net use otherwise triggers lazy init and races wpeinit.
 net start Workstation >nul 2>&1
 set /a TRIES=0
